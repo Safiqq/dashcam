@@ -4,14 +4,10 @@ import mediapipe
 
 mediapipe_path = os.path.dirname(mediapipe.__file__)
 
-if not os.path.exists('users.json'):
-    raise FileNotFoundError("users.json not found in the current directory")
-
 PyInstaller.__main__.run([
     'main.py',
     '--onefile',
     '--windowed',
-    '--add-data=users.json:.',
     f'--add-data={mediapipe_path}:mediapipe',
     '--hidden-import=PyQt5.QtCore',
     '--hidden-import=PyQt5.QtGui',

@@ -120,8 +120,7 @@ class MainWindow(QtWidgets.QMainWindow):
             #btn_{field_type}:hover {{ background-color: #D7D5D8; }}
         """)
         btn.setObjectName(f"btn_{field_type}")
-        icon = QIcon("assets/folder_open.svg")
-        btn.setIcon(icon)
+        btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DirOpenIcon))
         btn.setIconSize(QSize(24, 24))
         btn.clicked.connect(getattr(self, f"open_{field_type}"))
         hlayout.addWidget(btn)

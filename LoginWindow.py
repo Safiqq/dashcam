@@ -1,4 +1,3 @@
-import json
 import hashlib
 import os
 from PyQt5 import QtWidgets
@@ -10,6 +9,14 @@ class LoginWindow(QtWidgets.QWidget):
         super().__init__()
         self.initUI()
         self.salt = 'dashcam'
+        self.users = [{
+            "username": "admin",
+            "password": "fbc2d981bb15702431ba6858c7a4bc35320373aafa52e9a77bb00670ea192474"
+        },
+        {
+            "username": "user",
+            "password": "0b61423b50a5d0294f01d30c4591c943a13e030d3515431b7846c6c2da1f863e"
+        }]
         
     def initUI(self):
         """Initialize the user interface."""
@@ -76,10 +83,7 @@ class LoginWindow(QtWidgets.QWidget):
     def check_credentials(self, username, password):
         """Verify user credentials against stored data."""
         try:
-            with open('users.json', 'r') as file:
-                users = json.load(file)
-            
-            for user in users:
+            for user in self.users:
                 if user['username'] == username:
                     stored_password = user['password']
                     return self.verify_password(stored_password, password)
