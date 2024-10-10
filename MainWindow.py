@@ -407,7 +407,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.label_perclos_2.setText(f"{data['perclos']:.2f}")
         self.label_saccade_freq_2.setText(f"{data['saccade_frequency']}")
         self.label_saccade_mean_2.setText(f"{data['saccade_mean']:.2f}")
-        self.label_timestamp_2.setText(f"{(data['timestamp']-1):.2f}-{data['timestamp']:.2f}")
+        self.label_timestamp_2.setText(f"{(data['timestamp']-60):.2f}-{data['timestamp']:.2f}")
 
     def load_video(self, fileName):
         """Load the video file using OpenCV."""
