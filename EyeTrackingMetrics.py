@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-from collections import deque
 
 class EyeTrackingMetrics:
     def __init__(self, fps):
@@ -9,8 +8,8 @@ class EyeTrackingMetrics:
         self.face_mesh = mp.solutions.face_mesh.FaceMesh(
             max_num_faces=1,
             refine_landmarks=True,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_detection_confidence=0.01,
+            min_tracking_confidence=0.01
         )
         self.LEFT_EYE = [362, 385, 387, 263, 373, 380]
         self.RIGHT_EYE = [33, 160, 158, 133, 153, 144]
@@ -27,7 +26,7 @@ class EyeTrackingMetrics:
         closed_times = []
         
         last_eye_state = "open"
-        last_iris_position = None
+        last_relative_iris_position = None
         blink_start_time = None
         closing_start_time = None
         
@@ -38,7 +37,7 @@ class EyeTrackingMetrics:
             
             timestamp = frame_num / fps
             results = self.process_frame(frame)
-            
+
             if results.multi_face_landmarks:
                 landmarks = np.array([(lm.x, lm.y) for lm in results.multi_face_landmarks[0].landmark])
                 left_eye = landmarks[self.LEFT_EYE]
@@ -52,32 +51,32 @@ class EyeTrackingMetrics:
                 if eyes_closed and last_eye_state == "open":
                     closing_start_time = timestamp
                     blink_data.append(("closing", timestamp))
+                    last_eye_state = "closing"
                 elif eyes_closed and last_eye_state == "closing":
                     blink_data.append(("closed", timestamp))
+                    last_eye_state = "closed"
                 elif not eyes_closed and last_eye_state in ["closing", "closed"]:
                     blink_data.append(("reopening", timestamp))
+                    last_eye_state = "reopening"
                 elif not eyes_closed and last_eye_state == "reopening":
                     blink_duration = timestamp - closing_start_time
                     blink_data.append(("complete", timestamp, blink_duration))
+                    last_eye_state = "open"
                 
                 # Closed time for PERCLOS
                 closed_times.append((timestamp, 1 / fps) if eyes_closed else (timestamp, 0))
                 
                 # Saccade detection
-                current_iris_position = np.mean([
-                    self.calculate_iris_movement(left_iris),
-                    self.calculate_iris_movement(right_iris)
-                ], axis=0)
+                current_relative_iris_position = self.calculate_relative_iris_position(left_eye, left_iris, right_eye, right_iris)
                 
-                if last_iris_position is not None:
-                    movement = np.linalg.norm(current_iris_position - last_iris_position)
+                if last_relative_iris_position is not None:
+                    movement = abs(current_relative_iris_position - last_relative_iris_position)
                     if movement > 0.01:
                         saccade_data.append(("saccade", timestamp))
                     else:
                         saccade_data.append(("no_saccade", timestamp))
                 
-                last_eye_state = "closed" if eyes_closed else "open"
-                last_iris_position = current_iris_position
+                last_relative_iris_position = current_relative_iris_position
             
             progress_callback(int((frame_num + 1) / total_frames * 100))
         
@@ -88,7 +87,7 @@ class EyeTrackingMetrics:
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return self.face_mesh.process(frame_rgb)
 
-    def is_eye_closed(self, eye_landmarks, threshold=0.2):
+    def is_eye_closed(self, eye_landmarks, threshold=0.396):
         ear = self.calculate_eye_aspect_ratio(eye_landmarks)
         return ear < threshold
 
@@ -98,8 +97,18 @@ class EyeTrackingMetrics:
         horizontal = np.linalg.norm(eye_landmarks[0] - eye_landmarks[3])
         return (vertical_1 + vertical_2) / (2.0 * horizontal)
 
-    def calculate_iris_movement(self, iris_landmarks):
-        return np.mean(iris_landmarks, axis=0)
+    def calculate_relative_iris_position(self, left_eye, left_iris, right_eye, right_iris):
+        # Calculate the relative position of the iris for both eyes
+        left_eye_center = np.mean(left_eye[:, 0])
+        right_eye_center = np.mean(right_eye[:, 0])
+        left_iris_center = np.mean(left_iris[:, 0])
+        right_iris_center = np.mean(right_iris[:, 0])
+        
+        left_relative_position = (left_iris_center - left_eye_center) / (np.max(left_eye[:, 0]) - np.min(left_eye[:, 0]))
+        right_relative_position = (right_iris_center - right_eye_center) / (np.max(right_eye[:, 0]) - np.min(right_eye[:, 0]))
+        
+        # Return the average relative position of both irises
+        return (left_relative_position + right_relative_position) / 2
 
     def calculate_metrics(self, blink_data, saccade_data, closed_times, fps):
         metrics = []

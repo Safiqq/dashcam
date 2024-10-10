@@ -251,12 +251,12 @@ class MainWindow(QtWidgets.QMainWindow):
         collection_layout = QtWidgets.QGridLayout()
         
         labels = [
-            ("blink_duration", "blink duration"),
+            ("blink_duration", "blink duration (s)"),
             ("blink_freq", "blink frequency"),
-            ("microsleep", "microsleep"),
-            ("perclos", "PERCLOS"),
+            ("microsleep", "microsleep (s)"),
+            ("perclos", "PERCLOS (%)"),
             ("saccade_freq", "saccade frequency"),
-            ("saccade_mean", "saccade mean"),
+            ("saccade_mean", "saccade mean (pixels/frame)"),
             ("timestamp", "timestamp")
         ]
         
@@ -356,15 +356,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # draw_landmark_numbers(self.LEFT_EYE, self.LEFT_EYE)
         # draw_landmark_numbers(self.RIGHT_EYE, self.RIGHT_EYE)
 
-    def update_metrics_ui(self, metrics):
-        self.label_blink_duration_2.setText(f"{metrics['blink_duration']:.2f}")
-        self.label_blink_freq_2.setText(f"{metrics['blink_frequency']}")
-        self.label_microsleep_2.setText(f"{metrics['microsleep']}")
-        self.label_perclos_2.setText(f"{metrics['perclos']:.2f}")
-        self.label_saccade_freq_2.setText(f"{metrics['saccade_frequency']}")
-        self.label_saccade_mean_2.setText(f"{metrics['saccade_mean']:.2f}")
-        self.label_timestamp_2.setText(f"{metrics['timestamp']:.2f}")
-
     def open_vid(self):
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open File", ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi)")
         if fileName:
@@ -374,6 +365,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progress_dialog = QtWidgets.QProgressDialog("Processing video...", "Cancel", 0, 100, self)
         self.progress_dialog.setWindowModality(Qt.WindowModal)
         self.progress_dialog.setWindowTitle("Processing")
+        self.progress_dialog.setLabelText("Initializing...")
         self.progress_dialog.show()
 
         self.preprocessor = EyeTrackingMetrics(30)  # Assume 30 fps, adjust as needed
@@ -384,12 +376,13 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.preprocessing_thread.started.connect(self.preprocessing_worker.run)
         self.preprocessing_worker.progress.connect(self.update_progress)
+        self.preprocessing_worker.status_update.connect(self.update_status)
         self.preprocessing_worker.finished.connect(self.preprocessing_finished)
-        
+
         self.preprocessing_thread.start()
 
-    def update_progress(self, value):
-        self.progress_dialog.setValue(value)
+    def update_status(self, status):
+        self.progress_dialog.setLabelText(status)
 
     def preprocessing_finished(self, metrics):
         self.preprocessing_thread.quit()
@@ -397,20 +390,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progress_dialog.close()
         
         self.metrics = metrics
-        self.update_metrics_display(0)  # Display first minute's data
         self.load_video(self.preprocessing_worker.fileName)
+        self.last_processed_frame = -1
 
-    def update_metrics_display(self, minute):
-        if minute < len(self.metrics):
-            data = self.metrics[minute]
-            self.label_blink_duration_2.setText(f"{data['blink_duration']:.2f}")
-            self.label_blink_freq_2.setText(f"{data['blink_frequency']}")
-            self.label_microsleep_2.setText(f"{data['microsleep']}")
-            self.label_perclos_2.setText(f"{data['perclos']:.2f}")
-            self.label_saccade_freq_2.setText(f"{data['saccade_frequency']}")
-            self.label_saccade_mean_2.setText(f"{data['saccade_mean']:.2f}")
-            self.label_timestamp_2.setText(f"{data['timestamp']:.2f}")
-    
+    def update_metrics_display(self):
+        minute = int((self.current_frame / self.fps) // 60) + 1
+        
+        matching_data = None
+        for data in self.metrics:
+            if data['timestamp'] == (minute * 60):
+                matching_data = data
+                break
+        self.label_blink_duration_2.setText(f"{data['blink_duration']:.2f}")
+        self.label_blink_freq_2.setText(f"{data['blink_frequency']}")
+        self.label_microsleep_2.setText(f"{data['microsleep']}")
+        self.label_perclos_2.setText(f"{data['perclos']:.2f}")
+        self.label_saccade_freq_2.setText(f"{data['saccade_frequency']}")
+        self.label_saccade_mean_2.setText(f"{data['saccade_mean']:.2f}")
+        self.label_timestamp_2.setText(f"{(data['timestamp']-1):.2f}-{data['timestamp']:.2f}")
+
     def load_video(self, fileName):
         """Load the video file using OpenCV."""
         # Close any existing video
@@ -533,6 +531,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_frame = int(self.video_capture.get(cv2.CAP_PROP_POS_FRAMES))
             self.horizontalSlider.setValue(self.current_frame)
             self.update_time_label()
+            self.update_metrics_display()
         else:
             # Video ended, stop the timer
             self.video_timer.stop()
@@ -568,8 +567,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Reset eye tracking metrics if the position change is significant
         current_frame = int(self.video_capture.get(cv2.CAP_PROP_POS_FRAMES))
-        if abs(position - current_frame) > self.fps:  # If change is more than 1 second
-            # self.eye_metrics.reset()
+        if abs(position - current_frame) > self.fps:
             self.last_processed_frame = -1
 
         self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, position)
@@ -578,6 +576,7 @@ class MainWindow(QtWidgets.QMainWindow):
             frame_with_landmarks = self.process_frame(frame)
             self.display_frame(frame_with_landmarks)
             self.update_time_label()
+            self.update_metrics_display()
 
     def play(self):
         """Toggle play/pause of the video."""
@@ -606,6 +605,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.video_timer.start()
         self.current_frame = int(self.video_capture.get(cv2.CAP_PROP_POS_FRAMES))
         self.update_time_label()
+        self.update_metrics_display()
 
     def slider_moved(self, value):
         """Handle slider moved event."""
@@ -613,6 +613,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.set_position(value)
             self.current_frame = int(self.video_capture.get(cv2.CAP_PROP_POS_FRAMES))
             self.update_time_label()
+            self.update_metrics_display()
 
     def position_changed(self, position):
         """Handle change in media player position."""
