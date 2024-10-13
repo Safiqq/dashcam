@@ -1,7 +1,7 @@
 import hashlib
 import os
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, Qt
 from MainWindow import MainWindow
 
 class LoginWindow(QtWidgets.QWidget):
@@ -20,10 +20,16 @@ class LoginWindow(QtWidgets.QWidget):
         
     def initUI(self):
         """Initialize the user interface."""
-        self.setWindowTitle('Login')
+        self.setWindowTitle("Login")
         self.setGeometry(300, 300, 300, 200)
         
         layout = QtWidgets.QVBoxLayout()
+
+        # Login label
+        login_label = QtWidgets.QLabel("Eye Tracking Apps")
+        login_label.setStyleSheet("font-size: 18px;")
+        login_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(login_label)
         
         # Username input
         self.username_input = self.create_input_field('Username:')

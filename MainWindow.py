@@ -29,7 +29,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setup_ui(self):
         """Set up the user interface."""
-        self.setObjectName("MainWindow")
+        self.setWindowTitle("Eye Tracking Apps")
         self.resize(1920, 1080)
         self.setStyleSheet("* { font-size: 18px; }")
         
