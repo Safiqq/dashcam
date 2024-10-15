@@ -29,7 +29,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setup_ui(self):
         """Set up the user interface."""
-        self.setWindowTitle("Eye Tracking Apps")
+        self.setWindowTitle("Alertness Detection App")
         self.resize(1920, 1080)
         self.setStyleSheet("* { font-size: 18px; }")
         
@@ -86,7 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
         csv_writer = CSVWriter(f"{time.time_ns()}.csv")
         csv_writer.write_header()
         for metric in self.metrics:
-            csv_writer.write_data([metric['timestamp'], metric['blink_duration'], metric['blink_frequency'], metric['microsleep'], metric['perclos'], metric['saccade_frequency'], metric['saccade_mean']])
+            csv_writer.write_data([metric['timestamp'], metric['closing_duration'], metric['closed_duration'], metric['reopening_duration'], metric['blink_duration'], metric['blink_frequency'], metric['microsleep'], metric['perclos'], metric['saccade_frequency'], metric['saccade_mean']])
 
     def add_data_input_field(self, layout, field_type, placeholder):
         """Add a data input field to the layout."""
@@ -250,6 +250,9 @@ class MainWindow(QtWidgets.QMainWindow):
         collection_layout = QtWidgets.QGridLayout()
         
         labels = [
+            ("closing_duration", "closing duration (s)"),
+            ("closed_duration", "closed duration (s)"),
+            ("reopening_duration", "reopening duration (s)"),
             ("blink_duration", "blink duration (s)"),
             ("blink_freq", "blink frequency"),
             ("microsleep", "microsleep (s)"),
@@ -400,6 +403,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if data['timestamp'] == (minute * 60):
                 matching_data = data
                 break
+        self.label_closing_duration_2.setText(f"{data['closing_duration']:.2f}")
+        self.label_closed_duration_2.setText(f"{data['closed_duration']:.2f}")
+        self.label_reopening_duration_2.setText(f"{data['reopening_duration']:.2f}")
         self.label_blink_duration_2.setText(f"{data['blink_duration']:.2f}")
         self.label_blink_freq_2.setText(f"{data['blink_frequency']}")
         self.label_microsleep_2.setText(f"{data['microsleep']}")

@@ -26,7 +26,7 @@ class LoginWindow(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
 
         # Login label
-        login_label = QtWidgets.QLabel("Eye Tracking Apps")
+        login_label = QtWidgets.QLabel("Alertness Detection App")
         login_label.setStyleSheet("font-size: 18px;")
         login_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(login_label)

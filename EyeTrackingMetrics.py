@@ -53,14 +53,17 @@ class EyeTrackingMetrics:
                     blink_data.append(("closing", timestamp))
                     last_eye_state = "closing"
                 elif eyes_closed and last_eye_state == "closing":
-                    blink_data.append(("closed", timestamp))
+                    closing_duration = timestamp - closing_start_time
+                    blink_data.append(("closed", timestamp, closing_duration))
                     last_eye_state = "closed"
                 elif not eyes_closed and last_eye_state in ["closing", "closed"]:
-                    blink_data.append(("reopening", timestamp))
+                    closed_duration = timestamp - closing_start_time - closing_duration
+                    blink_data.append(("reopening", timestamp, closed_duration))
                     last_eye_state = "reopening"
                 elif not eyes_closed and last_eye_state == "reopening":
+                    reopening_duration = timestamp - closing_start_time - closing_duration - closed_duration
                     blink_duration = timestamp - closing_start_time
-                    blink_data.append(("complete", timestamp, blink_duration))
+                    blink_data.append(("complete", timestamp, blink_duration, reopening_duration))
                     last_eye_state = "open"
                 
                 # Closed time for PERCLOS
@@ -120,6 +123,9 @@ class EyeTrackingMetrics:
             recent_saccades = [s for s in saccade_data if start_time <= s[1] < end_time]
             recent_closed_times = [c for c in closed_times if start_time <= c[0] < end_time]
             
+            closing_duration = sum(b[2] for b in recent_blinks if b[0] == "closed")
+            closed_duration = sum(b[2] for b in recent_blinks if b[0] == "reopening")
+            reopening_duration = sum(b[3] for b in recent_blinks if b[0] == "complete")
             blink_duration = sum(b[2] for b in recent_blinks if b[0] == "complete")
             blink_frequency = sum(1 for b in recent_blinks if b[0] == "complete")
             microsleep_count = sum(1 for b in recent_blinks if b[0] == "complete" and b[2] > 0.5)
@@ -129,6 +135,9 @@ class EyeTrackingMetrics:
             saccade_mean = np.mean([1 if s[0] == "saccade" else 0 for s in recent_saccades]) if recent_saccades else 0
             
             metrics.append({
+                "closing_duration": closing_duration,
+                "closed_duration": closed_duration,
+                "reopening_duration": reopening_duration,
                 "blink_duration": blink_duration,
                 "blink_frequency": blink_frequency,
                 "microsleep": microsleep_count,
