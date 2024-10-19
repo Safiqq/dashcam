@@ -86,7 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
         csv_writer = CSVWriter(f"{time.time_ns()}.csv")
         csv_writer.write_header()
         for metric in self.metrics:
-            csv_writer.write_data([metric['timestamp'], metric['closing_duration'], metric['closed_duration'], metric['reopening_duration'], metric['blink_duration'], metric['blink_frequency'], metric['microsleep'], metric['perclos'], metric['saccade_frequency'], metric['saccade_mean']])
+            csv_writer.write_data([metric['timestamp'], metric['closing_duration'], metric['closed_duration'], metric['reopening_duration'], metric['blink_duration'], metric['blink_frequency'], metric['microsleep_frequency'], metric['perclos'], metric['saccade_frequency'], metric['saccade_mean']])
 
     def add_data_input_field(self, layout, field_type, placeholder):
         """Add a data input field to the layout."""
@@ -255,7 +255,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ("reopening_duration", "reopening duration (s)"),
             ("blink_duration", "blink duration (s)"),
             ("blink_freq", "blink frequency"),
-            ("microsleep", "microsleep (s)"),
+            ("microsleep_freq", "microsleep frequency"),
             ("perclos", "PERCLOS (%)"),
             ("saccade_freq", "saccade frequency"),
             ("saccade_mean", "saccade mean (pixels/frame)"),
@@ -408,7 +408,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.label_reopening_duration_2.setText(f"{data['reopening_duration']:.2f}")
         self.label_blink_duration_2.setText(f"{data['blink_duration']:.2f}")
         self.label_blink_freq_2.setText(f"{data['blink_frequency']}")
-        self.label_microsleep_2.setText(f"{data['microsleep']}")
+        self.label_microsleep_freq_2.setText(f"{data['microsleep_frequency']}")
         self.label_perclos_2.setText(f"{data['perclos']:.2f}")
         self.label_saccade_freq_2.setText(f"{data['saccade_frequency']}")
         self.label_saccade_mean_2.setText(f"{data['saccade_mean']:.2f}")

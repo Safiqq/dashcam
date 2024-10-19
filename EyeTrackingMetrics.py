@@ -123,12 +123,23 @@ class EyeTrackingMetrics:
             recent_saccades = [s for s in saccade_data if start_time <= s[1] < end_time]
             recent_closed_times = [c for c in closed_times if start_time <= c[0] < end_time]
             
-            closing_duration = sum(b[2] for b in recent_blinks if b[0] == "closed")
-            closed_duration = sum(b[2] for b in recent_blinks if b[0] == "reopening")
-            reopening_duration = sum(b[3] for b in recent_blinks if b[0] == "complete")
-            blink_duration = sum(b[2] for b in recent_blinks if b[0] == "complete")
+            closing_frequency = sum(1 for b in recent_blinks if b[0] == "closed")
+            if closing_frequency > 0: closing_duration = sum(b[2] for b in recent_blinks if b[0] == "closed") / closing_frequency
+            else: closing_duration = 0.00
+            
+            closed_frequency = sum(1 for b in recent_blinks if b[0] == "reopening")
+            if closed_frequency > 0: closed_duration = sum(b[2] for b in recent_blinks if b[0] == "reopening") / closed_frequency
+            else: closed_duration = 0.00
+            
+            reopening_frequency = sum(1 for b in recent_blinks if b[0] == "complete")
+            if reopening_frequency > 0: reopening_duration = sum(b[3] for b in recent_blinks if b[0] == "complete") / reopening_frequency
+            else: reopening_duration = 0.00
+
             blink_frequency = sum(1 for b in recent_blinks if b[0] == "complete")
-            microsleep_count = sum(1 for b in recent_blinks if b[0] == "complete" and b[2] > 0.5)
+            if blink_frequency > 0: blink_duration = sum(b[2] for b in recent_blinks if b[0] == "complete") / blink_frequency
+            else: blink_duration = 0.00
+                
+            microsleep_frequency = sum(1 for b in recent_blinks if b[0] == "complete" and b[2] > 0.5)
             total_closed_time = sum(duration for _, duration in recent_closed_times)
             perclos = (total_closed_time / 60) * 100 if recent_closed_times else 0
             saccade_frequency = sum(1 for s in recent_saccades if s[0] == "saccade")
@@ -140,7 +151,7 @@ class EyeTrackingMetrics:
                 "reopening_duration": reopening_duration,
                 "blink_duration": blink_duration,
                 "blink_frequency": blink_frequency,
-                "microsleep": microsleep_count,
+                "microsleep_frequency": microsleep_frequency,
                 "perclos": perclos,
                 "saccade_frequency": saccade_frequency,
                 "saccade_mean": saccade_mean,
